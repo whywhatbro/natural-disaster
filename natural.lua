@@ -1,4 +1,4 @@
--- Natural Disaster Survival - Real Physics Block Art (Mọi người đều thấy)
+-- Natural Disaster Survival - Perfect Pixel Art Controller (Sync & Smooth)
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local CoreGui = game:GetService("CoreGui")
@@ -44,7 +44,7 @@ cornerFrame.Parent = mainFrame
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, 0, 0, 35)
 title.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-title.Text = "Ghép Khối Thật 20x20 (Public View)"
+title.Text = "Ghép Khối Pixel Chuẩn 20x20"
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.TextSize = 14
 title.Parent = mainFrame
@@ -86,7 +86,7 @@ local spawnBtn = Instance.new("TextButton")
 spawnBtn.Size = UDim2.new(0, 120, 0, 35)
 spawnBtn.Position = UDim2.new(0.5, -130, 1, -55)
 spawnBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
-spawnBtn.Text = "Kéo Khối Lên Đầu"
+spawnBtn.Text = "Tạo Mô Hình"
 spawnBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 spawnBtn.TextSize = 14
 spawnBtn.Parent = mainFrame
@@ -104,10 +104,10 @@ toggleBtn.MouseButton1Click:Connect(function()
     mainFrame.Visible = not mainFrame.Visible
 end)
 
--- Bảng chỉnh vị trí Move XYZ
+-- Bảng cài đặt Move & Góc độ chi tiết (XYZ & Rotation)
 local moveFrame = Instance.new("Frame")
-moveFrame.Size = UDim2.new(0, 280, 0, 180)
-moveFrame.Position = UDim2.new(0.5, -140, 0.5, -90)
+moveFrame.Size = UDim2.new(0, 300, 0, 260)
+moveFrame.Position = UDim2.new(0.5, -150, 0.5, -130)
 moveFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 moveFrame.Visible = false
 moveFrame.Parent = screenGui
@@ -115,44 +115,50 @@ moveFrame.Parent = screenGui
 local moveTitle = Instance.new("TextLabel")
 moveTitle.Size = UDim2.new(1, 0, 0, 30)
 moveTitle.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-moveTitle.Text = "Điều Chỉnh Vị Trí (Offset XYZ)"
+moveTitle.Text = "Tinh Chỉnh Tọa Độ & Góc Độ"
 moveTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
 moveTitle.Parent = moveFrame
 
-local offsetX, offsetY, offsetZ = 0, 4, 0
-local selectedParts = {}
+-- Biến cấu hình vị trí và góc xoay
+local offsetX, offsetY, offsetZ = 0, 3.5, 0
+local rotX, rotY, rotZ = 0, 0, 0 -- Góc xoay ngang/dọc
+local activeMapping = {} -- Lưu danh sách block đang bám theo người chơi
+local isFollowing = false
 
-local function createSlider(name, posY, initialVal, callback)
+local function createSlider(name, posY, min, max, initialVal, callback)
     local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(0, 50, 0, 30)
+    label.Size = UDim2.new(0, 80, 0, 25)
     label.Position = UDim2.new(0, 10, 0, posY)
-    label.Text = name .. ": " .. initialVal
+    label.Text = name .. ": " .. string.format("%.1f", initialVal)
     label.TextColor3 = Color3.fromRGB(255, 255, 255)
     label.BackgroundTransparency = 1
+    label.TextSize = 12
     label.Parent = moveFrame
     
     local sliderBar = Instance.new("TextButton")
-    sliderBar.Size = UDim2.new(0, 200, 0, 10)
-    sliderBar.Position = UDim2.new(0, 70, 0, posY + 10)
+    sliderBar.Size = UDim2.new(0, 180, 0, 10)
+    sliderBar.Position = UDim2.new(0, 100, 0, posY + 8)
     sliderBar.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
     sliderBar.Text = ""
     sliderBar.Parent = moveFrame
     
     sliderBar.MouseButton1Click:Connect(function()
-        initialVal = initialVal + 1
-        if initialVal > 10 then initialVal = -10 end
-        label.Text = name .. ": " .. initialVal
+        initialVal = initialVal + 0.5
+        if initialVal > max then initialVal = min end
+        label.Text = name .. ": " .. string.format("%.1f", initialVal)
         callback(initialVal)
     end)
 end
 
-createSlider("X", 45, offsetX, function(val) offsetX = val end)
-createSlider("Y", 85, offsetY, function(val) offsetY = val end)
-createSlider("Z", 125, offsetZ, function(val) offsetZ = val end)
+createSlider("PosX", 40, -10, 10, offsetX, function(val) offsetX = val end)
+createSlider("PosY", 75, -5, 15, offsetY, function(val) offsetY = val end)
+createSlider("PosZ", 110, -10, 10, offsetZ, function(val) offsetZ = val end)
+createSlider("RotX", 145, 0, 360, rotX, function(val) rotX = val end)
+createSlider("RotY", 180, 0, 360, rotY, function(val) rotY = val end)
 
 local closeMoveBtn = Instance.new("TextButton")
-closeMoveBtn.Size = UDim2.new(0, 80, 0, 25)
-closeMoveBtn.Position = UDim2.new(0.5, -40, 1, -30)
+closeMoveBtn.Size = UDim2.new(0, 90, 0, 25)
+closeMoveBtn.Position = UDim2.new(0.5, -45, 1, -30)
 closeMoveBtn.BackgroundColor3 = Color3.fromRGB(170, 0, 0)
 closeMoveBtn.Text = "Đóng"
 closeMoveBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -166,59 +172,81 @@ closeMoveBtn.MouseButton1Click:Connect(function()
     moveFrame.Visible = false
 end)
 
--- Hàm thu thập các mảnh vỡ / block thực tế có sẵn trên bản đồ
-local function getMapParts()
-    local parts = {}
+-- Chỉ lọc đúng các mảnh vụn / block vỡ thật sự (loại bỏ người chơi, map chính, vật thể cố định)
+local function getValidDebris()
+    local debris = {}
     for _, obj in pairs(Workspace:GetDescendants()) do
-        if obj:IsA("BasePart") and not obj.Parent:FindFirstChild("Humanoid") and obj.Name ~= "Terrain" then
-            -- Ưu tiên lấy những khối đang di chuyển/vỡ hoặc khối nhỏ trên map
-            table.insert(parts, obj)
+        if obj:IsA("BasePart") and not obj.Anchored and not obj.Parent:FindFirstChild("Humanoid") then
+            -- Đảm bảo chỉ lấy khối nhỏ hoặc mảnh vỡ thực sự
+            if obj.Size.Magnitude < 15 and obj.Name ~= "Terrain" then
+                table.insert(debris, obj)
+            end
         end
     end
-    return parts
+    return debris
 end
 
--- Xử lý khi nhấn nút "Kéo Khối Lên Đầu"
+-- Khi nhấn tạo mô hình
 spawnBtn.MouseButton1Click:Connect(function()
     mainFrame.Visible = false
-    selectedParts = {}
+    activeMapping = {}
     
-    local char = player.Character
-    if not char or not char:FindFirstChild("Head") then return end
-    local headPos = char.Head.Position
+    local debrisList = getValidDebris()
+    if #debrisList == 0 then
+        return -- Không tìm thấy mảnh vỡ nào
+    end
     
-    -- Lấy danh sách các block thực tế từ bản đồ
-    local availableParts = getMapParts()
-    local partIndex = 1
+    local debrisIndex = 1
     
-    -- Duyệt lưới 20x20 người dùng đã chọn
+    -- Duyệt lưới pixel 20x20 chuẩn xác từng ô nhỏ (kích thước khoảng 0.45 stud để mô hình gọn gàng)
+    local pixelSize = 0.45 
+    
     for y = 1, 20 do
         for x = 1, 20 do
             if gridData[y][x] then
-                local targetPart = availableParts[partIndex]
-                if targetPart then
-                    -- Tắt vật lý tạm thời để cố định vị trí thành hình nghệ thuật trên đầu
+                local part = debrisList[debrisIndex]
+                if part then
+                    -- Cố định kích thước block về chuẩn 1x1 nhỏ gọn (đúng chuẩn pixel)
                     pcall(function()
-                        targetPart.Anchored = true
-                        targetPart.CanCollide = false
-                        
-                        -- Tính toán tọa độ từng ô pixel bám theo đầu nhân vật + tùy chỉnh XYZ
-                        local posX = headPos.X + (x - 10) * 0.7 + offsetX
-                        local posY = headPos.Y + offsetY + (20 - y) * 0.7
-                        local posZ = headPos.Z + offsetZ
-                        
-                        targetPart.CFrame = CFrame.new(posX, posY, posZ)
+                        part.Size = Vector3.new(pixelSize, pixelSize, pixelSize)
+                        part.CanCollide = false
                     end)
                     
-                    table.insert(selectedParts, targetPart)
-                    partIndex = partIndex + 1
+                    -- Lưu thông tin vị trí tương đối trên lưới pixel
+                    table.insert(activeMapping, {
+                        part = part,
+                        localPos = Vector3.new((x - 10) * pixelSize, (20 - y) * pixelSize, 0)
+                    })
                     
-                    -- Nếu danh sách block trên map ít quá thì quay vòng lại sử dụng tiếp
-                    if partIndex > #availableParts then
-                        partIndex = 1
+                    debrisIndex = debrisIndex + 1
+                    if debrisIndex > #debrisList then
+                        debrisIndex = 1 -- Quay vòng danh sách nếu cần thêm khối
                     end
                 end
             end
+        end
+    end
+    
+    isFollowing = true
+end)
+
+-- Vòng lặp cập nhật liên tục vị trí để mô hình bám dính chặt và xoay theo nhân vật
+RunService.RenderStepped:Connect(function()
+    if not isFollowing then return end
+    
+    local char = player.Character
+    if not char or not char:FindFirstChild("Head") then return end
+    local head = char.Head
+    
+    -- Thiết lập độ xoay và góc độ (Rotation)
+    local baseCFrame = head.CFrame * CFrame.new(offsetX, offsetY, offsetZ) * CFrame.Angles(math.rad(rotX), math.rad(rotY), math.rad(rotZ))
+    
+    for _, item in ipairs(activeMapping) do
+        local p = item.part
+        if p and p.Parent then
+            p.Anchored = true
+            -- Dịch chuyển block bám chính xác theo hệ tọa độ xoay quanh đầu nhân vật
+            p.CFrame = baseCFrame * CFrame.new(item.localPos)
         end
     end
 end)
