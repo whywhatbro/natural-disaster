@@ -1,4 +1,4 @@
--- Natural Disaster Survival - Real Physical Push & Visual Block Selector
+-- Natural Disaster Survival - Fixed Block Selector & Physics Pixel Art
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local CoreGui = game:GetService("CoreGui")
@@ -44,7 +44,7 @@ cornerFrame.Parent = mainFrame
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, 0, 0, 35)
 title.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-title.Text = "Pixel Art - Kéo Vật Lý Thực Tế"
+title.Text = "Pixel Art - Chọn Block Thật"
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.TextSize = 14
 title.Parent = mainFrame
@@ -88,7 +88,7 @@ local chooseBlockBtn = Instance.new("TextButton")
 chooseBlockBtn.Size = UDim2.new(0, 140, 0, 30)
 chooseBlockBtn.Position = UDim2.new(0.5, -140, 1, -75)
 chooseBlockBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 150)
-chooseBlockBtn.Text = "Chọn Block (Có Màu/Hình)"
+chooseBlockBtn.Text = "Chọn Block (Xem Màu)"
 chooseBlockBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 chooseBlockBtn.TextSize = 11
 chooseBlockBtn.Parent = mainFrame
@@ -115,7 +115,7 @@ toggleBtn.MouseButton1Click:Connect(function()
     mainFrame.Visible = not mainFrame.Visible
 end)
 
--- Bảng hiển thị danh sách block có màu sắc trực quan (Thumbnail Preview)
+-- Bảng hiển thị danh sách block (Đã fix lỗi trống trơn)
 local blockListFrame = Instance.new("ScrollingFrame")
 blockListFrame.Size = UDim2.new(0, 260, 0, 250)
 blockListFrame.Position = UDim2.new(0.5, -130, 0.5, -125)
@@ -131,6 +131,7 @@ local selectedBlockType = nil
 local availableDebrisCategories = {}
 
 local function scanAndShowDebris()
+    -- Xóa danh sách cũ an toàn
     for _, child in pairs(blockListFrame:GetChildren()) do
         if child:IsA("Frame") then child:Destroy() end
     end
@@ -149,13 +150,18 @@ local function scanAndShowDebris()
                 p = p.Parent
             end
             
-            -- Lọc cực kỳ nghiêm ngặt: Loại bỏ nền đất to, chỉ lấy block vỡ có kích thước nhỏ/vừa (0.5 đến 8 stud)
-            if not isChar and obj.Name ~= "Terrain" and obj.Size.Magnitude >= 0.5 and obj.Size.Magnitude <= 8 then
-                local key = obj.Name "_" tostring(obj.Color)
+            -- Lọc chuẩn khối vỡ nhỏ/vừa, bỏ qua nền đất to
+            if not isChar and obj.Name ~= "Terrain" and obj.Size.Magnitude >= 0.5 and obj.Size.Magnitude <= 10 then
+                local success, partColor = pcall(function()
+                    return obj.Color
+                end)
+                if not success then partColor = Color3.fromRGB(150, 150, 150) end
+                
+                local key = obj.Name
                 if not availableDebrisCategories[key] then
                     availableDebrisCategories[key] = {
                         name = obj.Name,
-                        color = obj.Color,
+                        color = partColor,
                         parts = {}
                     }
                 end
@@ -164,14 +170,13 @@ local function scanAndShowDebris()
         end
     end
     
+    -- Tạo giao diện danh sách có icon màu sắc
     for key, data in pairs(availableDebrisCategories) do
-        -- Khung chứa từng dòng block có ô hiển thị màu sắc trực quan bên cạnh
         local itemFrame = Instance.new("Frame")
         itemFrame.Size = UDim2.new(1, -10, 0, 40)
         itemFrame.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
         itemFrame.Parent = blockListFrame
         
-        -- Ô hiển thị màu sắc/hình dạng mẫu của block đó (Icon Preview)
         local colorPreview = Instance.new("Frame")
         colorPreview.Size = UDim2.new(0, 30, 0, 30)
         colorPreview.Position = UDim2.new(0, 5, 0.5, -15)
@@ -265,7 +270,7 @@ closeMoveBtn.MouseButton1Click:Connect(function()
     moveFrame.Visible = false
 end)
 
--- Cơ chế đẩy block vật lý (Mọi người đều nhìn thấy và va chạm thật)
+-- Gắn hình và đẩy block vật lý thực tế
 spawnBtn.MouseButton1Click:Connect(function()
     if not selectedBlockType or #selectedBlockType == 0 then
         return
@@ -281,12 +286,9 @@ spawnBtn.MouseButton1Click:Connect(function()
                 local part = selectedBlockType[debrisIndex]
                 if part and part.Parent then
                     pcall(function()
-                        -- Yêu cầu quyền điều khiển mạng để game đồng bộ hóa cho mọi người cùng thấy
-                        if part:IsA("BasePart") then
-                            part:SetNetworkOwner(player)
-                            part.CanCollide = true -- Bật va chạm thật để người khác chạm vào được
-                            part.Size = Vector3.new(pixelSize, pixelSize, pixelSize)
-                        end
+                        part:SetNetworkOwner(player)
+                        part.CanCollide = true
+                        part.Size = Vector3.new(pixelSize, pixelSize, pixelSize)
                     end)
                     
                     table.insert(activeMapping, {
@@ -306,7 +308,7 @@ spawnBtn.MouseButton1Click:Connect(function()
     isFollowing = true
 end)
 
--- Vòng lặp đẩy vật lý mượt mà (Mô phỏng lực kéo đẩy block đến chỗ bạn liên tục)
+-- Vòng lặp đẩy lực vật lý (Mọi người đều thấy và chạm được)
 RunService.RenderStepped:Connect(function()
     if not isFollowing then return end
     
@@ -320,13 +322,12 @@ RunService.RenderStepped:Connect(function()
         local p = item.part
         if p and p.Parent then
             local targetCFrame = baseCFrame * CFrame.new(item.localPos)
-            -- Sử dụng lực đẩy vật lý (Velocity / CFrame interpolation) thay vì teleport cứng để mọi người thấy block bay đến
             local currentPos = p.Position
             local targetPos = targetCFrame.Position
             local direction = (targetPos - currentPos)
             
-            p.AssemblyLinearVelocity = direction * 15 -- Lực đẩy block trôi mượt mà đến vị trí đích
-            p.CFrame = p.CFrame:Lerp(targetCFrame, 0.2) -- Đồng bộ chuyển động mượt
+            p.AssemblyLinearVelocity = direction * 15
+            p.CFrame = p.CFrame:Lerp(targetCFrame, 0.2)
         end
     end
 end)
