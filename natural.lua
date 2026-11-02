@@ -1,4 +1,4 @@
--- Natural Disaster Survival - Fixed Block Selector & Physics Pixel Art
+-- Natural Disaster Survival - Stable Pixel Art & Debris Selector
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local CoreGui = game:GetService("CoreGui")
@@ -88,7 +88,7 @@ local chooseBlockBtn = Instance.new("TextButton")
 chooseBlockBtn.Size = UDim2.new(0, 140, 0, 30)
 chooseBlockBtn.Position = UDim2.new(0.5, -140, 1, -75)
 chooseBlockBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 150)
-chooseBlockBtn.Text = "Chọn Block (Xem Màu)"
+chooseBlockBtn.Text = "Chọn Tên Block"
 chooseBlockBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 chooseBlockBtn.TextSize = 11
 chooseBlockBtn.Parent = mainFrame
@@ -115,7 +115,8 @@ toggleBtn.MouseButton1Click:Connect(function()
     mainFrame.Visible = not mainFrame.Visible
 end)
 
--- Bảng hiển thị danh sách block (Đã fix lỗi trống trơn)
+-- Bảng hiển thị danh sách dạng Tên & Số lượng
+local blockListFrame = Instance.new("ScrollingStructure") -- Sửa lại thành ScrollingFrame cho chuẩn
 local blockListFrame = Instance.new("ScrollingFrame")
 blockListFrame.Size = UDim2.new(0, 260, 0, 250)
 blockListFrame.Position = UDim2.new(0.5, -130, 0.5, -125)
@@ -131,9 +132,8 @@ local selectedBlockType = nil
 local availableDebrisCategories = {}
 
 local function scanAndShowDebris()
-    -- Xóa danh sách cũ an toàn
     for _, child in pairs(blockListFrame:GetChildren()) do
-        if child:IsA("Frame") then child:Destroy() end
+        if child:IsA("TextButton") then child:Destroy() end
     end
     
     availableDebrisCategories = {}
@@ -150,18 +150,12 @@ local function scanAndShowDebris()
                 p = p.Parent
             end
             
-            -- Lọc chuẩn khối vỡ nhỏ/vừa, bỏ qua nền đất to
+            -- Lọc block vỡ thực sự (bỏ nền đất to)
             if not isChar and obj.Name ~= "Terrain" and obj.Size.Magnitude >= 0.5 and obj.Size.Magnitude <= 10 then
-                local success, partColor = pcall(function()
-                    return obj.Color
-                end)
-                if not success then partColor = Color3.fromRGB(150, 150, 150) end
-                
                 local key = obj.Name
                 if not availableDebrisCategories[key] then
                     availableDebrisCategories[key] = {
                         name = obj.Name,
-                        color = partColor,
                         parts = {}
                     }
                 end
@@ -170,28 +164,16 @@ local function scanAndShowDebris()
         end
     end
     
-    -- Tạo giao diện danh sách có icon màu sắc
+    -- Tạo nút bấm hiển thị Tên và Số lượng (SL)
     for key, data in pairs(availableDebrisCategories) do
-        local itemFrame = Instance.new("Frame")
-        itemFrame.Size = UDim2.new(1, -10, 0, 40)
-        itemFrame.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-        itemFrame.Parent = blockListFrame
-        
-        local colorPreview = Instance.new("Frame")
-        colorPreview.Size = UDim2.new(0, 30, 0, 30)
-        colorPreview.Position = UDim2.new(0, 5, 0.5, -15)
-        colorPreview.BackgroundColor3 = data.color
-        colorPreview.Parent = itemFrame
-        
         local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(1, -40, 1, 0)
-        btn.Position = UDim2.new(0, 40, 0, 0)
-        btn.BackgroundTransparency = 1
-        btn.Text = "   " .. data.name .. " (SL: " .. #data.parts .. ")"
+        btn.Size = UDim2.new(1, -10, 0, 35)
+        btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        btn.Text = "  " .. data.name .. "  |  Số lượng: " .. #data.parts
         btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        btn.TextSize = 11
+        btn.TextSize = 12
         btn.TextXAlignment = Enum.TextXAlignment.Left
-        btn.Parent = itemFrame
+        btn.Parent = blockListFrame
         
         btn.MouseButton1Click:Connect(function()
             selectedBlockType = data.parts
