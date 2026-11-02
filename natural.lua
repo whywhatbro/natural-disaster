@@ -1,4 +1,4 @@
--- Natural Disaster Survival - Stable Pixel Art & Debris Selector
+-- Natural Disaster Survival - Pixel Art & Advanced Move/Rotate GUI
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local CoreGui = game:GetService("CoreGui")
@@ -15,7 +15,7 @@ screenGui.Name = "NDSPixelArtGui"
 screenGui.Parent = CoreGui
 screenGui.ResetOnSpawn = false
 
--- Nút nổi mở bảng vẽ
+-- Nút nổi mở bảng vẽ chính
 local toggleBtn = Instance.new("TextButton")
 toggleBtn.Size = UDim2.new(0, 50, 0, 50)
 toggleBtn.Position = UDim2.new(0, 20, 0, 150)
@@ -44,7 +44,7 @@ cornerFrame.Parent = mainFrame
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, 0, 0, 35)
 title.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-title.Text = "Pixel Art - Chọn Block Thật"
+title.Text = "Pixel Art - Natural Disaster"
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.TextSize = 14
 title.Parent = mainFrame
@@ -97,7 +97,7 @@ local spawnBtn = Instance.new("TextButton")
 spawnBtn.Size = UDim2.new(0, 140, 0, 30)
 spawnBtn.Position = UDim2.new(0.5, 0, 1, -75)
 spawnBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
-spawnBtn.Text = "Đẩy Block Lên Đầu"
+spawnBtn.Text = "Gắn Hình Lên Đầu"
 spawnBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 spawnBtn.TextSize = 11
 spawnBtn.Parent = mainFrame
@@ -106,7 +106,7 @@ local moveBtn = Instance.new("TextButton")
 moveBtn.Size = UDim2.new(0, 280, 0, 30)
 moveBtn.Position = UDim2.new(0.5, -140, 1, -40)
 moveBtn.BackgroundColor3 = Color3.fromRGB(200, 100, 0)
-moveBtn.Text = "Cài đặt Move, Size & Góc Xoay (XYZ)"
+moveBtn.Text = "⚙️ Cài đặt Move, Size & Góc Xoay"
 moveBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 moveBtn.TextSize = 11
 moveBtn.Parent = mainFrame
@@ -115,7 +115,7 @@ toggleBtn.MouseButton1Click:Connect(function()
     mainFrame.Visible = not mainFrame.Visible
 end)
 
--- Bảng hiển thị danh sách dạng Tên & Số lượng (Đã fix lỗi cú pháp)
+-- Bảng hiển thị danh sách dạng Tên & Số lượng
 local blockListFrame = Instance.new("ScrollingFrame")
 blockListFrame.Size = UDim2.new(0, 260, 0, 250)
 blockListFrame.Position = UDim2.new(0.5, -130, 0.5, -125)
@@ -149,7 +149,6 @@ local function scanAndShowDebris()
                 p = p.Parent
             end
             
-            -- Lọc block vỡ thực sự (bỏ nền đất to)
             if not isChar and obj.Name ~= "Terrain" and obj.Size.Magnitude >= 0.5 and obj.Size.Magnitude <= 10 then
                 local key = obj.Name
                 if not availableDebrisCategories[key] then
@@ -163,7 +162,6 @@ local function scanAndShowDebris()
         end
     end
     
-    -- Tạo nút bấm hiển thị Tên và Số lượng (SL)
     for key, data in pairs(availableDebrisCategories) do
         local btn = Instance.new("TextButton")
         btn.Size = UDim2.new(1, -10, 0, 35)
@@ -189,13 +187,20 @@ chooseBlockBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Bảng cài đặt Move, Size, Góc xoay
+-- Bảng cài đặt Move, Size, Góc xoay (Hiển thị nổi bật khi bấm nút cam)
 local moveFrame = Instance.new("Frame")
 moveFrame.Size = UDim2.new(0, 300, 0, 280)
 moveFrame.Position = UDim2.new(0.5, -150, 0.5, -140)
 moveFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 moveFrame.Visible = false
 moveFrame.Parent = screenGui
+
+local moveTitle = Instance.new("TextLabel")
+moveTitle.Size = UDim2.new(1, 0, 0, 30)
+moveTitle.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+moveTitle.Text = "Cài Đặt Tọa Độ & Góc Xoay"
+moveTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+moveTitle.Parent = moveFrame
 
 local offsetX, offsetY, offsetZ = 0, 4, 0
 local rotX, rotY, rotZ = 0, 0, 0
@@ -228,12 +233,12 @@ local function createSlider(name, posY, min, max, initialVal, callback)
     end)
 end
 
-createSlider("PosX", 35, -10, 10, offsetX, function(val) offsetX = val end)
-createSlider("PosY", 70, -5, 15, offsetY, function(val) offsetY = val end)
-createSlider("PosZ", 105, -10, 10, offsetZ, function(val) offsetZ = val end)
-createSlider("Size", 140, 0.3, 2.0, pixelSize, function(val) pixelSize = val end)
-createSlider("RotX", 175, 0, 360, rotX, function(val) rotX = val end)
-createSlider("RotY", 210, 0, 360, rotY, function(val) rotY = val end)
+createSlider("PosX", 40, -10, 10, offsetX, function(val) offsetX = val end)
+createSlider("PosY", 75, -5, 15, offsetY, function(val) offsetY = val end)
+createSlider("PosZ", 110, -10, 10, offsetZ, function(val) offsetZ = val end)
+createSlider("Size", 145, 0.3, 2.0, pixelSize, function(val) pixelSize = val end)
+createSlider("RotX", 180, 0, 360, rotX, function(val) rotX = val end)
+createSlider("RotY", 215, 0, 360, rotY, function(val) rotY = val end)
 
 local closeMoveBtn = Instance.new("TextButton")
 closeMoveBtn.Size = UDim2.new(0, 90, 0, 25)
@@ -251,7 +256,7 @@ closeMoveBtn.MouseButton1Click:Connect(function()
     moveFrame.Visible = false
 end)
 
--- Gắn hình và đẩy block vật lý thực tế
+-- Gắn hình pixel
 spawnBtn.MouseButton1Click:Connect(function()
     if not selectedBlockType or #selectedBlockType == 0 then
         return
@@ -267,8 +272,6 @@ spawnBtn.MouseButton1Click:Connect(function()
                 local part = selectedBlockType[debrisIndex]
                 if part and part.Parent then
                     pcall(function()
-                        part:SetNetworkOwner(player)
-                        part.CanCollide = true
                         part.Size = Vector3.new(pixelSize, pixelSize, pixelSize)
                     end)
                     
@@ -289,7 +292,7 @@ spawnBtn.MouseButton1Click:Connect(function()
     isFollowing = true
 end)
 
--- Vòng lặp đẩy lực vật lý (Mọi người đều thấy và chạm được)
+-- Vòng lặp bám theo nhân vật và góc xoay XYZ
 RunService.RenderStepped:Connect(function()
     if not isFollowing then return end
     
@@ -297,18 +300,13 @@ RunService.RenderStepped:Connect(function()
     if not char or not char:FindFirstChild("Head") then return end
     local head = char.Head
     
+    -- Tính toán vị trí và góc xoay (Rotation XYZ)
     local baseCFrame = head.CFrame * CFrame.new(offsetX, offsetY, offsetZ) * CFrame.Angles(math.rad(rotX), math.rad(rotY), math.rad(rotZ))
     
     for _, item in ipairs(activeMapping) do
         local p = item.part
         if p and p.Parent then
-            local targetCFrame = baseCFrame * CFrame.new(item.localPos)
-            local currentPos = p.Position
-            local targetPos = targetCFrame.Position
-            local direction = (targetPos - currentPos)
-            
-            p.AssemblyLinearVelocity = direction * 15
-            p.CFrame = p.CFrame:Lerp(targetCFrame, 0.2)
+            p.CFrame = baseCFrame * CFrame.new(item.localPos)
         end
     end
 end)
