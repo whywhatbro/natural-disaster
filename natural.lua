@@ -1,26 +1,26 @@
--- Natural Disaster Survival - Pixel Art & Advanced Move/Rotate GUI
+-- Roblox Mobile VR Arm Controller for R15
 local Players = game:GetService("Players")
-local Workspace = game:GetService("Workspace")
-local CoreGui = game:GetService("CoreGui")
 local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 
 -- Xóa UI cũ nếu có
-if CoreGui:FindFirstChild("NDSPixelArtGui") then
-    CoreGui.NDSPixelArtGui:Destroy()
+if CoreGui:FindFirstChild("MobileVRGui") then
+    CoreGui.MobileVRGui:Destroy()
 end
 
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "NDSPixelArtGui"
+screenGui.Name = "MobileVRGui"
 screenGui.Parent = CoreGui
 screenGui.ResetOnSpawn = false
 
--- Nút nổi mở bảng vẽ chính
+-- Nút Bật/Tắt Menu VR
 local toggleBtn = Instance.new("TextButton")
 toggleBtn.Size = UDim2.new(0, 50, 0, 50)
-toggleBtn.Position = UDim2.new(0, 20, 0, 150)
+toggleBtn.Position = UDim2.new(0, 20, 0, 100)
 toggleBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
-toggleBtn.Text = "🎨"
+toggleBtn.Text = "🥽"
 toggleBtn.TextSize = 24
 toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 toggleBtn.Parent = screenGui
@@ -29,284 +29,129 @@ local cornerBtn = Instance.new("UICorner")
 cornerBtn.CornerRadius = UDim.new(1, 0)
 cornerBtn.Parent = toggleBtn
 
--- Bảng chính 20x20
+-- Khung điều khiển chính (Ẩn/Hiện)
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 320, 0, 440)
-mainFrame.Position = UDim2.new(0.5, -160, 0.5, -220)
-mainFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+mainFrame.Size = UDim2.new(0, 360, 0, 200)
+mainFrame.Position = UDim2.new(0.5, -180, 1, -220)
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+mainFrame.BackgroundTransparency = 0.3
 mainFrame.Visible = false
 mainFrame.Parent = screenGui
 
 local cornerFrame = Instance.new("UICorner")
-cornerFrame.CornerRadius = UDim.new(0, 10)
+cornerFrame.CornerRadius = UDim.new(0, 12)
 cornerFrame.Parent = mainFrame
-
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 35)
-title.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-title.Text = "Pixel Art - Natural Disaster"
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
-title.TextSize = 14
-title.Parent = mainFrame
-
--- Lưới vẽ 20x20
-local gridContainer = Instance.new("Frame")
-gridContainer.Size = UDim2.new(0, 260, 0, 260)
-gridContainer.Position = UDim2.new(0.5, -130, 0, 45)
-gridContainer.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-gridContainer.Parent = mainFrame
-
-local gridLayout = Instance.new("UIGridLayout")
-gridLayout.CellSize = UDim2.new(0, 12, 0, 12)
-gridLayout.CellPadding = UDim2.new(0, 1, 0, 1)
-gridLayout.Parent = gridContainer
-
-local gridData = {}
-for y = 1, 20 do
-    gridData[y] = {}
-    for x = 1, 20 do
-        gridData[y][x] = false
-        local cell = Instance.new("TextButton")
-        cell.Size = UDim2.new(0, 12, 0, 12)
-        cell.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-        cell.Text = ""
-        cell.Parent = gridContainer
-        
-        cell.MouseButton1Click:Connect(function()
-            gridData[y][x] = not gridData[y][x]
-            if gridData[y][x] then
-                cell.BackgroundColor3 = Color3.fromRGB(0, 255, 128)
-            else
-                cell.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-            end
-        end)
-    end
-end
-
--- Nút mở danh sách block
-local chooseBlockBtn = Instance.new("TextButton")
-chooseBlockBtn.Size = UDim2.new(0, 140, 0, 30)
-chooseBlockBtn.Position = UDim2.new(0.5, -140, 1, -75)
-chooseBlockBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 150)
-chooseBlockBtn.Text = "Chọn Tên Block"
-chooseBlockBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-chooseBlockBtn.TextSize = 11
-chooseBlockBtn.Parent = mainFrame
-
-local spawnBtn = Instance.new("TextButton")
-spawnBtn.Size = UDim2.new(0, 140, 0, 30)
-spawnBtn.Position = UDim2.new(0.5, 0, 1, -75)
-spawnBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
-spawnBtn.Text = "Gắn Hình Lên Đầu"
-spawnBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-spawnBtn.TextSize = 11
-spawnBtn.Parent = mainFrame
-
-local moveBtn = Instance.new("TextButton")
-moveBtn.Size = UDim2.new(0, 280, 0, 30)
-moveBtn.Position = UDim2.new(0.5, -140, 1, -40)
-moveBtn.BackgroundColor3 = Color3.fromRGB(200, 100, 0)
-moveBtn.Text = "⚙️ Cài đặt Move, Size & Góc Xoay"
-moveBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-moveBtn.TextSize = 11
-moveBtn.Parent = mainFrame
 
 toggleBtn.MouseButton1Click:Connect(function()
     mainFrame.Visible = not mainFrame.Visible
 end)
 
--- Bảng hiển thị danh sách dạng Tên & Số lượng
-local blockListFrame = Instance.new("ScrollingFrame")
-blockListFrame.Size = UDim2.new(0, 260, 0, 250)
-blockListFrame.Position = UDim2.new(0.5, -130, 0.5, -125)
-blockListFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-blockListFrame.Visible = false
-blockListFrame.Parent = screenGui
+-- Biến điều khiển góc tay (Left & Right Arm Angles)
+local leftArmAngleX, leftArmAngleY = 0, 0
+local rightArmAngleX, rightArmAngleY = 0, 0
 
-local listLayout = Instance.new("UIListLayout")
-listLayout.Padding = UDim.new(0, 5)
-listLayout.Parent = blockListFrame
-
-local selectedBlockType = nil 
-local availableDebrisCategories = {}
-
-local function scanAndShowDebris()
-    for _, child in pairs(blockListFrame:GetChildren()) do
-        if child:IsA("TextButton") then child:Destroy() end
-    end
+-- Hàm tạo Joystick ảo trên màn hình điện thoại
+local function createVirtualJoystick(name, posX, callback)
+    local stickBg = Instance.new("Frame")
+    stickBg.Size = UDim2.new(0, 120, 0, 120)
+    stickBg.Position = UDim2.new(0, posX, 0, 40)
+    stickBg.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    stickBg.BackgroundTransparency = 0.5
+    stickBg.Parent = mainFrame
     
-    availableDebrisCategories = {}
+    local bgCorner = Instance.new("UICorner")
+    bgCorner.CornerRadius = UDim.new(1, 0)
+    bgCorner.Parent = stickBg
     
-    for _, obj in pairs(Workspace:GetDescendants()) do
-        if obj:IsA("BasePart") and not obj.Anchored then
-            local isChar = false
-            local p = obj.Parent
-            while p and p ~= Workspace do
-                if p:FindFirstChild("Humanoid") then
-                    isChar = true
-                    break
-                end
-                p = p.Parent
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 0, 20)
+    label.Position = UDim2.new(0, 0, 0, -25)
+    label.BackgroundTransparency = 1
+    label.Text = name
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.TextSize = 14
+    label.Parent = stickBg
+
+    local knob = Instance.new("TextButton")
+    knob.Size = UDim2.new(0, 50, 0, 50)
+    knob.Position = UDim2.new(0.5, -25, 0.5, -25)
+    knob.BackgroundColor3 = Color3.fromRGB(0, 200, 255)
+    knob.Text = ""
+    knob.Parent = stickBg
+    
+    local knobCorner = Instance.new("UICorner")
+    knobCorner.CornerRadius = Instance.new("UICorner")
+    knobCorner.CornerRadius = UDim.new(1, 0)
+    knobCorner.Parent = knob
+
+    local dragging = false
+    local touchId = nil
+    
+    knob.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            touchId = input
+        end
+    end)
+
+    UserInputService.InputEnded:Connect(function(input)
+        if input == touchId then
+            dragging = false
+            touchId = nil
+            knob.Position = UDim2.new(0.5, -25, 0.5, -25)
+            callback(0, 0)
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
+            local pos = input.Position
+            local bgPos = stickBg.AbsolutePosition
+            local center = bgPos + Vector2.new(60, 60)
+            local delta = Vector2.new(pos.X, pos.Y) - center
+            
+            -- Giới hạn bán kính joystick
+            local distance = delta.Magnitude
+            if distance > 45 then
+                delta = delta.Unit * 45
             end
             
-            if not isChar and obj.Name ~= "Terrain" and obj.Size.Magnitude >= 0.5 and obj.Size.Magnitude <= 10 then
-                local key = obj.Name
-                if not availableDebrisCategories[key] then
-                    availableDebrisCategories[key] = {
-                        name = obj.Name,
-                        parts = {}
-                    }
-                end
-                table.insert(availableDebrisCategories[key].parts, obj)
-            end
+            knob.Position = UDim2.new(0.5, delta.X - 25, 0.5, delta.Y - 25)
+            
+            -- Trả về giá trị -1 đến 1
+            callback(delta.X / 45, delta.Y / 45)
         end
-    end
-    
-    for key, data in pairs(availableDebrisCategories) do
-        local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(1, -10, 0, 35)
-        btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-        btn.Text = "  " .. data.name .. "  |  SL: " .. #data.parts
-        btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        btn.TextSize = 12
-        btn.TextXAlignment = Enum.TextXAlignment.Left
-        btn.Parent = blockListFrame
-        
-        btn.MouseButton1Click:Connect(function()
-            selectedBlockType = data.parts
-            chooseBlockBtn.Text = "Đã chọn: " .. data.name
-            blockListFrame.Visible = false
-        end)
-    end
-end
-
-chooseBlockBtn.MouseButton1Click:Connect(function()
-    blockListFrame.Visible = not blockListFrame.Visible
-    if blockListFrame.Visible then
-        scanAndShowDebris()
-    end
-end)
-
--- Bảng cài đặt Move, Size, Góc xoay (Hiển thị nổi bật khi bấm nút cam)
-local moveFrame = Instance.new("Frame")
-moveFrame.Size = UDim2.new(0, 300, 0, 280)
-moveFrame.Position = UDim2.new(0.5, -150, 0.5, -140)
-moveFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-moveFrame.Visible = false
-moveFrame.Parent = screenGui
-
-local moveTitle = Instance.new("TextLabel")
-moveTitle.Size = UDim2.new(1, 0, 0, 30)
-moveTitle.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-moveTitle.Text = "Cài Đặt Tọa Độ & Góc Xoay"
-moveTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-moveTitle.Parent = moveFrame
-
-local offsetX, offsetY, offsetZ = 0, 4, 0
-local rotX, rotY, rotZ = 0, 0, 0
-local pixelSize = 0.6
-local activeMapping = {}
-local isFollowing = false
-
-local function createSlider(name, posY, min, max, initialVal, callback)
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(0, 90, 0, 25)
-    label.Position = UDim2.new(0, 10, 0, posY)
-    label.Text = name .. ": " .. string.format("%.1f", initialVal)
-    label.TextColor3 = Color3.fromRGB(255, 255, 255)
-    label.BackgroundTransparency = 1
-    label.TextSize = 12
-    label.Parent = moveFrame
-    
-    local sliderBar = Instance.new("TextButton")
-    sliderBar.Size = UDim2.new(0, 170, 0, 10)
-    sliderBar.Position = UDim2.new(0, 110, 0, posY + 8)
-    sliderBar.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-    sliderBar.Text = ""
-    sliderBar.Parent = moveFrame
-    
-    sliderBar.MouseButton1Click:Connect(function()
-        initialVal = initialVal + 0.5
-        if initialVal > max then initialVal = min end
-        label.Text = name .. ": " .. string.format("%.1f", initialVal)
-        callback(initialVal)
     end)
 end
 
-createSlider("PosX", 40, -10, 10, offsetX, function(val) offsetX = val end)
-createSlider("PosY", 75, -5, 15, offsetY, function(val) offsetY = val end)
-createSlider("PosZ", 110, -10, 10, offsetZ, function(val) offsetZ = val end)
-createSlider("Size", 145, 0.3, 2.0, pixelSize, function(val) pixelSize = val end)
-createSlider("RotX", 180, 0, 360, rotX, function(val) rotX = val end)
-createSlider("RotY", 215, 0, 360, rotY, function(val) rotY = val end)
-
-local closeMoveBtn = Instance.new("TextButton")
-closeMoveBtn.Size = UDim2.new(0, 90, 0, 25)
-closeMoveBtn.Position = UDim2.new(0.5, -45, 1, -30)
-closeMoveBtn.BackgroundColor3 = Color3.fromRGB(170, 0, 0)
-closeMoveBtn.Text = "Đóng"
-closeMoveBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-closeMoveBtn.Parent = moveFrame
-
-moveBtn.MouseButton1Click:Connect(function()
-    moveFrame.Visible = true
+-- Tạo Joystick điều khiển Tay Trái và Tay Phải
+createVirtualJoystick("Tay Trái (Left Arm)", 30, function(x, y)
+    leftArmAngleY = x * 2
+    leftArmAngleX = -y * 2
 end)
 
-closeMoveBtn.MouseButton1Click:Connect(function()
-    moveFrame.Visible = false
+createVirtualJoystick("Tay Phải (Right Arm)", 210, function(x, y)
+    rightArmAngleY = x * 2
+    rightArmAngleX = -y * 2
 end)
 
--- Gắn hình pixel
-spawnBtn.MouseButton1Click:Connect(function()
-    if not selectedBlockType or #selectedBlockType == 0 then
-        return
-    end
-    
-    mainFrame.Visible = false
-    activeMapping = {}
-    local debrisIndex = 1
-    
-    for y = 1, 20 do
-        for x = 1, 20 do
-            if gridData[y][x] then
-                local part = selectedBlockType[debrisIndex]
-                if part and part.Parent then
-                    pcall(function()
-                        part.Size = Vector3.new(pixelSize, pixelSize, pixelSize)
-                    end)
-                    
-                    table.insert(activeMapping, {
-                        part = part,
-                        localPos = Vector3.new((x - 10) * pixelSize, (20 - y) * pixelSize, 0)
-                    })
-                    
-                    debrisIndex = debrisIndex + 1
-                    if debrisIndex > #selectedBlockType then
-                        debrisIndex = 1
-                    end
-                end
-            end
-        end
-    end
-    
-    isFollowing = true
-end)
-
--- Vòng lặp bám theo nhân vật và góc xoay XYZ
+-- Vòng lặp cập nhật chuyển động khớp vai R15 (Motor6D / CFrame)
 RunService.RenderStepped:Connect(function()
-    if not isFollowing then return end
-    
     local char = player.Character
-    if not char or not char:FindFirstChild("Head") then return end
-    local head = char.Head
+    if not char then return end
     
-    -- Tính toán vị trí và góc xoay (Rotation XYZ)
-    local baseCFrame = head.CFrame * CFrame.new(offsetX, offsetY, offsetZ) * CFrame.Angles(math.rad(rotX), math.rad(rotY), math.rad(rotZ))
+    local leftUpperArm = char:FindFirstChild("LeftUpperArm")
+    local rightUpperArm = char:FindFirstChild("RightUpperArm")
     
-    for _, item in ipairs(activeMapping) do
-        local p = item.part
-        if p and p.Parent then
-            p.CFrame = baseCFrame * CFrame.new(item.localPos)
-        end
+    if leftUpperArm and leftUpperArm:FindFirstChild("LeftShoulder") then
+        local shoulder = leftUpperArm.LeftShoulder
+        shoulder.C0 = CFrame.new(-1, 0.5, 0) * CFrame.Angles(leftArmAngleX, leftArmAngleY, 0)
+    end
+    
+    if rightUpperArm and rightUpperArm:FindFirstChild("RightShoulder") then
+        local shoulder = rightUpperArm.RightShoulder
+        shoulder.C0 = CFrame.new(1, 0.5, 0) * CFrame.Angles(rightArmAngleX, rightArmAngleY, 0)
     end
 end)
+
+print("Script VR Mobile R15 đã khởi động thành công!")
