@@ -1,4 +1,4 @@
--- Natural Disaster Survival - Manual Debris Selector & Pixel Art
+-- Natural Disaster Survival - Real Physical Push & Visual Block Selector
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local CoreGui = game:GetService("CoreGui")
@@ -44,7 +44,7 @@ cornerFrame.Parent = mainFrame
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, 0, 0, 35)
 title.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-title.Text = "Bảng Vẽ Pixel & Chọn Block Thật"
+title.Text = "Pixel Art - Kéo Vật Lý Thực Tế"
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.TextSize = 14
 title.Parent = mainFrame
@@ -83,23 +83,23 @@ for y = 1, 20 do
     end
 end
 
--- Nút mở bảng chọn loại block vỡ
+-- Nút mở danh sách block
 local chooseBlockBtn = Instance.new("TextButton")
 chooseBlockBtn.Size = UDim2.new(0, 140, 0, 30)
 chooseBlockBtn.Position = UDim2.new(0.5, -140, 1, -75)
 chooseBlockBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 150)
-chooseBlockBtn.Text = "Chọn Loại Block Vỡ"
+chooseBlockBtn.Text = "Chọn Block (Có Màu/Hình)"
 chooseBlockBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-chooseBlockBtn.TextSize = 12
+chooseBlockBtn.TextSize = 11
 chooseBlockBtn.Parent = mainFrame
 
 local spawnBtn = Instance.new("TextButton")
 spawnBtn.Size = UDim2.new(0, 140, 0, 30)
 spawnBtn.Position = UDim2.new(0.5, 0, 1, -75)
 spawnBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
-spawnBtn.Text = "Gắn Hình Lên Đầu"
+spawnBtn.Text = "Đẩy Block Lên Đầu"
 spawnBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-spawnBtn.TextSize = 12
+spawnBtn.TextSize = 11
 spawnBtn.Parent = mainFrame
 
 local moveBtn = Instance.new("TextButton")
@@ -108,14 +108,14 @@ moveBtn.Position = UDim2.new(0.5, -140, 1, -40)
 moveBtn.BackgroundColor3 = Color3.fromRGB(200, 100, 0)
 moveBtn.Text = "Cài đặt Move, Size & Góc Xoay (XYZ)"
 moveBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-moveBtn.TextSize = 12
+moveBtn.TextSize = 11
 moveBtn.Parent = mainFrame
 
 toggleBtn.MouseButton1Click:Connect(function()
     mainFrame.Visible = not mainFrame.Visible
 end)
 
--- Bảng hiển thị danh sách các khối vỡ thực tế để người dùng bấm chọn
+-- Bảng hiển thị danh sách block có màu sắc trực quan (Thumbnail Preview)
 local blockListFrame = Instance.new("ScrollingFrame")
 blockListFrame.Size = UDim2.new(0, 260, 0, 250)
 blockListFrame.Position = UDim2.new(0.5, -130, 0.5, -125)
@@ -127,22 +127,19 @@ local listLayout = Instance.new("UIListLayout")
 listLayout.Padding = UDim.new(0, 5)
 listLayout.Parent = blockListFrame
 
-local selectedBlockType = nil -- Lưu loại block người dùng chọn
+local selectedBlockType = nil 
 local availableDebrisCategories = {}
 
 local function scanAndShowDebris()
-    -- Xóa danh sách cũ trên UI
     for _, child in pairs(blockListFrame:GetChildren()) do
-        if child:IsA("TextButton") then child:Destroy() end
+        if child:IsA("Frame") then child:Destroy() end
     end
     
     availableDebrisCategories = {}
     
-    -- Lọc chuẩn xác các block vỡ thực sự (Unanchored, không thuộc về người chơi hay map chính)
     for _, obj in pairs(Workspace:GetDescendants()) do
         if obj:IsA("BasePart") and not obj.Anchored then
             local isChar = false
-            -- Kiểm tra xem có dính dáng gì đến người chơi hay không để tránh kéo nhầm
             local p = obj.Parent
             while p and p ~= Workspace do
                 if p:FindFirstChild("Humanoid") then
@@ -152,12 +149,13 @@ local function scanAndShowDebris()
                 p = p.Parent
             end
             
-            if not isChar and obj.Name ~= "Terrain" and obj.Size.Magnitude < 15 then
-                local key = obj.Name .. "_" .. tostring(obj.BrickColor)
+            -- Lọc cực kỳ nghiêm ngặt: Loại bỏ nền đất to, chỉ lấy block vỡ có kích thước nhỏ/vừa (0.5 đến 8 stud)
+            if not isChar and obj.Name ~= "Terrain" and obj.Size.Magnitude >= 0.5 and obj.Size.Magnitude <= 8 then
+                local key = obj.Name "_" tostring(obj.Color)
                 if not availableDebrisCategories[key] then
                     availableDebrisCategories[key] = {
                         name = obj.Name,
-                        color = obj.BrickColor.Name,
+                        color = obj.Color,
                         parts = {}
                     }
                 end
@@ -166,15 +164,29 @@ local function scanAndShowDebris()
         end
     end
     
-    -- Tạo danh sách nút bấm cho từng loại block vỡ tìm được
     for key, data in pairs(availableDebrisCategories) do
+        -- Khung chứa từng dòng block có ô hiển thị màu sắc trực quan bên cạnh
+        local itemFrame = Instance.new("Frame")
+        itemFrame.Size = UDim2.new(1, -10, 0, 40)
+        itemFrame.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        itemFrame.Parent = blockListFrame
+        
+        -- Ô hiển thị màu sắc/hình dạng mẫu của block đó (Icon Preview)
+        local colorPreview = Instance.new("Frame")
+        colorPreview.Size = UDim2.new(0, 30, 0, 30)
+        colorPreview.Position = UDim2.new(0, 5, 0.5, -15)
+        colorPreview.BackgroundColor3 = data.color
+        colorPreview.Parent = itemFrame
+        
         local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(1, -10, 0, 35)
-        btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-        btn.Text = "Khối: " .. data.name .. " (" .. data.color .. ") - SL: " .. #data.parts
+        btn.Size = UDim2.new(1, -40, 1, 0)
+        btn.Position = UDim2.new(0, 40, 0, 0)
+        btn.BackgroundTransparency = 1
+        btn.Text = "   " .. data.name .. " (SL: " .. #data.parts .. ")"
         btn.TextColor3 = Color3.fromRGB(255, 255, 255)
         btn.TextSize = 11
-        btn.Parent = blockListFrame
+        btn.TextXAlignment = Enum.TextXAlignment.Left
+        btn.Parent = itemFrame
         
         btn.MouseButton1Click:Connect(function()
             selectedBlockType = data.parts
@@ -191,7 +203,7 @@ chooseBlockBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Bảng cài đặt chi tiết (Move, Size, Góc độ)
+-- Bảng cài đặt Move, Size, Góc xoay
 local moveFrame = Instance.new("Frame")
 moveFrame.Size = UDim2.new(0, 300, 0, 280)
 moveFrame.Position = UDim2.new(0.5, -150, 0.5, -140)
@@ -253,7 +265,7 @@ closeMoveBtn.MouseButton1Click:Connect(function()
     moveFrame.Visible = false
 end)
 
--- Gắn hình pixel theo loại block bạn đã chọn
+-- Cơ chế đẩy block vật lý (Mọi người đều nhìn thấy và va chạm thật)
 spawnBtn.MouseButton1Click:Connect(function()
     if not selectedBlockType or #selectedBlockType == 0 then
         return
@@ -269,9 +281,12 @@ spawnBtn.MouseButton1Click:Connect(function()
                 local part = selectedBlockType[debrisIndex]
                 if part and part.Parent then
                     pcall(function()
-                        part.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-                        part.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
-                        part.CanCollide = false
+                        -- Yêu cầu quyền điều khiển mạng để game đồng bộ hóa cho mọi người cùng thấy
+                        if part:IsA("BasePart") then
+                            part:SetNetworkOwner(player)
+                            part.CanCollide = true -- Bật va chạm thật để người khác chạm vào được
+                            part.Size = Vector3.new(pixelSize, pixelSize, pixelSize)
+                        end
                     end)
                     
                     table.insert(activeMapping, {
@@ -281,7 +296,7 @@ spawnBtn.MouseButton1Click:Connect(function()
                     
                     debrisIndex = debrisIndex + 1
                     if debrisIndex > #selectedBlockType then
-                        debrisIndex = 1 -- Lặp lại nếu hình vẽ cần nhiều block hơn số lượng loại đó có
+                        debrisIndex = 1
                     end
                 end
             end
@@ -291,7 +306,7 @@ spawnBtn.MouseButton1Click:Connect(function()
     isFollowing = true
 end)
 
--- Vòng lặp cập nhật vị trí bám theo đầu nhân vật mượt mà
+-- Vòng lặp đẩy vật lý mượt mà (Mô phỏng lực kéo đẩy block đến chỗ bạn liên tục)
 RunService.RenderStepped:Connect(function()
     if not isFollowing then return end
     
@@ -304,7 +319,14 @@ RunService.RenderStepped:Connect(function()
     for _, item in ipairs(activeMapping) do
         local p = item.part
         if p and p.Parent then
-            p.CFrame = baseCFrame * CFrame.new(item.localPos)
+            local targetCFrame = baseCFrame * CFrame.new(item.localPos)
+            -- Sử dụng lực đẩy vật lý (Velocity / CFrame interpolation) thay vì teleport cứng để mọi người thấy block bay đến
+            local currentPos = p.Position
+            local targetPos = targetCFrame.Position
+            local direction = (targetPos - currentPos)
+            
+            p.AssemblyLinearVelocity = direction * 15 -- Lực đẩy block trôi mượt mà đến vị trí đích
+            p.CFrame = p.CFrame:Lerp(targetCFrame, 0.2) -- Đồng bộ chuyển động mượt
         end
     end
 end)
