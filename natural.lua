@@ -115,8 +115,7 @@ toggleBtn.MouseButton1Click:Connect(function()
     mainFrame.Visible = not mainFrame.Visible
 end)
 
--- Bảng hiển thị danh sách dạng Tên & Số lượng
-local blockListFrame = Instance.new("ScrollingStructure") -- Sửa lại thành ScrollingFrame cho chuẩn
+-- Bảng hiển thị danh sách dạng Tên & Số lượng (Đã fix lỗi cú pháp)
 local blockListFrame = Instance.new("ScrollingFrame")
 blockListFrame.Size = UDim2.new(0, 260, 0, 250)
 blockListFrame.Position = UDim2.new(0.5, -130, 0.5, -125)
@@ -169,7 +168,7 @@ local function scanAndShowDebris()
         local btn = Instance.new("TextButton")
         btn.Size = UDim2.new(1, -10, 0, 35)
         btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-        btn.Text = "  " .. data.name .. "  |  Số lượng: " .. #data.parts
+        btn.Text = "  " .. data.name .. "  |  SL: " .. #data.parts
         btn.TextColor3 = Color3.fromRGB(255, 255, 255)
         btn.TextSize = 12
         btn.TextXAlignment = Enum.TextXAlignment.Left
