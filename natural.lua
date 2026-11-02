@@ -1,284 +1,213 @@
-
--- Mobile VR Arms Pro V3
--- Roblox Studio / R15 / LocalScript
--- Independent Left & Right Arm Controller
+-- Mobile VR Arms - Local visual experiment
+-- R15 avatar | Two touch joysticks | Toggle | Reset
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
+local UIS = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
-
--- ================= SETTINGS =================
-
-local MAX_PITCH = math.rad(110)
-local MAX_YAW = math.rad(100)
-local MAX_ROLL = math.rad(90)
-
-local enabled = false
-
-local character
-local leftShoulder
-local rightShoulder
-
-local leftPitch, leftYaw = 0, 0
-local rightPitch, rightYaw = 0, 0
-
-local leftRoll, rightRoll = 0, 0
-
--- ================= GUI =================
-
-local playerGui = player:WaitForChild("PlayerGui")
-
-local old = playerGui:FindFirstChild("MobileVRGui")
-if old then old:Destroy() end
-
 local gui = Instance.new("ScreenGui")
-gui.Name = "MobileVRGui"
+gui.Name = "MobileVRArms"
 gui.ResetOnSpawn = false
-gui.IgnoreGuiInset = true
-gui.Parent = playerGui
 
--- Toggle
-local toggle = Instance.new("TextButton")
-toggle.Size = UDim2.fromOffset(50,50)
-toggle.Position = UDim2.new(0,20,0,120)
-toggle.BackgroundColor3 = Color3.fromRGB(0,170,255)
-toggle.Text = "🥽"
-toggle.TextSize = 24
-toggle.Parent = gui
+local parent = game:GetService("CoreGui")
+gui.Parent = parent
 
-Instance.new("UICorner",toggle).CornerRadius =
-    UDim.new(1,0)
+local active = false
+local character, leftShoulder, rightShoulder
+local leftValue = Vector2.zero
+local rightValue = Vector2.zero
+local originalLeft, originalRight
 
--- Panel
-local panel = Instance.new("Frame")
-panel.Size = UDim2.fromOffset(380,210)
-panel.Position = UDim2.new(0.5,-190,1,-230)
-panel.BackgroundColor3 = Color3.fromRGB(30,30,30)
-panel.BackgroundTransparency = 0.2
-panel.Visible = false
-panel.Parent = gui
+local function setupCharacter()
+    character = player.Character or player.CharacterAdded:Wait()
+    local torso = character:WaitForChild("UpperTorso", 5)
+    if not torso then return end
 
-Instance.new("UICorner",panel).CornerRadius =
-    UDim.new(0,12)
+    leftShoulder = torso:FindFirstChild("LeftShoulder")
+    rightShoulder = torso:FindFirstChild("RightShoulder")
 
--- Reset
-local resetButton = Instance.new("TextButton")
-resetButton.Size = UDim2.fromOffset(65,28)
-resetButton.Position = UDim2.new(0.5,-32,0,175)
-resetButton.BackgroundColor3 = Color3.fromRGB(255,80,80)
-resetButton.Text = "RESET"
-resetButton.TextColor3 = Color3.new(1,1,1)
-resetButton.TextSize = 12
-resetButton.Parent = panel
-
-Instance.new("UICorner",resetButton).CornerRadius =
-    UDim.new(0,6)
-
--- ================= RESET =================
-
-local function resetArms()
-    leftPitch,leftYaw,leftRoll = 0,0,0
-    rightPitch,rightYaw,rightRoll = 0,0,0
+    if leftShoulder and rightShoulder then
+        originalLeft = leftShoulder.Transform
+        originalRight = rightShoulder.Transform
+    end
 end
 
-resetButton.Activated:Connect(resetArms)
+setupCharacter()
 
-toggle.Activated:Connect(function()
-    enabled = not enabled
-    panel.Visible = enabled
-
-    toggle.BackgroundColor3 = enabled
-        and Color3.fromRGB(0,170,255)
-        or Color3.fromRGB(80,80,80)
-
-    if not enabled then
-        resetArms()
-    end
+player.CharacterAdded:Connect(function()
+    task.wait(1)
+    setupCharacter()
 end)
 
--- ================= JOYSTICK =================
+local function makeButton(name, position, size, color)
+    local button = Instance.new("TextButton")
+    button.Name = name
+    button.Size = size
+    button.Position = position
+    button.BackgroundColor3 = color
+    button.TextColor3 = Color3.new(1,1,1)
+    button.TextScaled = true
+    button.Text = name
+    button.Parent = gui
+    Instance.new("UICorner", button).CornerRadius =
+        UDim.new(0, 12)
+    return button
+end
 
-local function createJoystick(name,posX,callback)
+local toggle = makeButton(
+    "🥽 VR ON",
+    UDim2.new(0, 15, 0, 120),
+    UDim2.fromOffset(105, 45),
+    Color3.fromRGB(40, 110, 190)
+)
 
-    local outer = Instance.new("Frame")
-    outer.Size = UDim2.fromOffset(130,130)
-    outer.Position = UDim2.new(0,posX,0,40)
-    outer.BackgroundColor3 = Color3.fromRGB(45,45,45)
-    outer.BackgroundTransparency = 0.35
-    outer.Parent = panel
+local reset = makeButton(
+    "RESET",
+    UDim2.new(0, 15, 0, 175),
+    UDim2.fromOffset(105, 40),
+    Color3.fromRGB(180, 75, 65)
+)
 
-    Instance.new("UICorner",outer).CornerRadius =
-        UDim.new(1,0)
-
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1,0,0,20)
-    label.Position = UDim2.new(0,0,0,-22)
-    label.BackgroundTransparency = 1
-    label.Text = name
-    label.TextColor3 = Color3.new(1,1,1)
-    label.TextSize = 13
-    label.Parent = outer
+local function makeJoystick(name, pos)
+    local base = Instance.new("Frame")
+    base.Name = name
+    base.Size = UDim2.fromOffset(130, 130)
+    base.Position = pos
+    base.BackgroundColor3 = Color3.fromRGB(45,45,55)
+    base.BackgroundTransparency = 0.2
+    base.Parent = gui
+    Instance.new("UICorner", base).CornerRadius =
+        UDim.new(1, 0)
 
     local knob = Instance.new("Frame")
-    knob.Size = UDim2.fromOffset(50,50)
-    knob.AnchorPoint = Vector2.new(0.5,0.5)
-    knob.Position = UDim2.fromScale(0.5,0.5)
-    knob.BackgroundColor3 = Color3.fromRGB(0,200,255)
-    knob.Parent = outer
-
-    Instance.new("UICorner",knob).CornerRadius =
+    knob.Size = UDim2.fromOffset(48,48)
+    knob.Position = UDim2.new(0.5,-24,0.5,-24)
+    knob.BackgroundColor3 = Color3.fromRGB(80,170,255)
+    knob.Parent = base
+    Instance.new("UICorner", knob).CornerRadius =
         UDim.new(1,0)
 
-    local activeTouch
-    local mouseActive = false
+    return base, knob
+end
 
-    local function reset()
-        activeTouch = nil
-        mouseActive = false
-        knob.Position = UDim2.fromScale(0.5,0.5)
-        callback(0,0)
-    end
+local leftBase, leftKnob = makeJoystick(
+    "LeftJoystick",
+    UDim2.new(0, 25, 1, -165)
+)
 
-    outer.InputBegan:Connect(function(input)
+local rightBase, rightKnob = makeJoystick(
+    "RightJoystick",
+    UDim2.new(1, -155, 1, -165)
+)
 
-        if not enabled then return end
+local function connectJoystick(base, knob, side)
+    local dragging = false
+    local touchId
 
-        if input.UserInputType == Enum.UserInputType.Touch then
-            if activeTouch then return end
-            activeTouch = input
-
-        elseif input.UserInputType ==
-            Enum.UserInputType.MouseButton1 then
-
-            mouseActive = true
-        end
-    end)
-
-    UserInputService.InputChanged:Connect(function(input)
-
-        if not enabled then return end
-
-        local valid = false
-
-        if activeTouch and input == activeTouch then
-            valid = true
-        elseif mouseActive and
-            input.UserInputType ==
-            Enum.UserInputType.MouseMovement then
-            valid = true
-        end
-
-        if not valid then return end
-
-        local center = outer.AbsolutePosition +
-            outer.AbsoluteSize/2
+    local function update(position)
+        local center = base.AbsolutePosition +
+            base.AbsoluteSize / 2
 
         local delta = Vector2.new(
-            input.Position.X,
-            input.Position.Y
-        ) - center
+            position.X - center.X,
+            position.Y - center.Y
+        )
 
-        local radius = 45
-
+        local radius = 42
         if delta.Magnitude > radius then
             delta = delta.Unit * radius
         end
 
         knob.Position = UDim2.new(
-            0.5,delta.X,
-            0.5,delta.Y
+            0.5, delta.X - 24,
+            0.5, delta.Y - 24
         )
 
-        callback(
-            delta.X/radius,
-            delta.Y/radius
+        local value = Vector2.new(
+            delta.X / radius,
+            delta.Y / radius
         )
-    end)
 
-    UserInputService.InputEnded:Connect(function(input)
+        if side == "Left" then
+            leftValue = value
+        else
+            rightValue = value
+        end
+    end
 
-        if input == activeTouch or
-            input.UserInputType ==
-            Enum.UserInputType.MouseButton1
-            and mouseActive then
-
-            reset()
+    base.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch
+        or input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            touchId = input
+            update(input.Position)
         end
     end)
 
-    panel:GetPropertyChangedSignal("Visible"):Connect(function()
-        if not panel.Visible then
-            reset()
+    UIS.InputChanged:Connect(function(input)
+        if dragging and input == touchId then
+            update(input.Position)
+        end
+    end)
+
+    UIS.InputEnded:Connect(function(input)
+        if input == touchId then
+            dragging = false
+            touchId = nil
+            knob.Position = UDim2.new(0.5,-24,0.5,-24)
+
+            if side == "Left" then
+                leftValue = Vector2.zero
+            else
+                rightValue = Vector2.zero
+            end
         end
     end)
 end
 
--- ================= LEFT ARM =================
+connectJoystick(leftBase, leftKnob, "Left")
+connectJoystick(rightBase, rightKnob, "Right")
 
-createJoystick("LEFT ARM",25,function(x,y)
-
-    leftYaw = x * MAX_YAW
-    leftPitch = -y * MAX_PITCH
-
+toggle.MouseButton1Click:Connect(function()
+    active = not active
+    toggle.Text = active and "🥽 VR ON" or "🥽 VR OFF"
 end)
 
--- ================= RIGHT ARM =================
+reset.MouseButton1Click:Connect(function()
+    leftValue = Vector2.zero
+    rightValue = Vector2.zero
 
-createJoystick("RIGHT ARM",215,function(x,y)
+    if leftShoulder and originalLeft then
+        leftShoulder.Transform = originalLeft
+    end
 
-    rightYaw = x * MAX_YAW
-    rightPitch = -y * MAX_PITCH
-
+    if rightShoulder and originalRight then
+        rightShoulder.Transform = originalRight
+    end
 end)
 
--- ================= CHARACTER =================
-
-local function setupCharacter(char)
-
-    character = char
-
-    local torso = char:WaitForChild("UpperTorso")
-
-    leftShoulder = torso:WaitForChild("LeftShoulder")
-    rightShoulder = torso:WaitForChild("RightShoulder")
-
-    resetArms()
-end
-
-if player.Character then
-    setupCharacter(player.Character)
-end
-
-player.CharacterAdded:Connect(setupCharacter)
-
--- ================= ARM CONTROLLER =================
-
-RunService.PreSimulation:Connect(function()
-
-    if not enabled then return end
-    if not character or not character.Parent then return end
-
-    if leftShoulder and leftShoulder.Parent then
+RunService:BindToRenderStep(
+    "MobileVRArms",
+    Enum.RenderPriority.Character.Value + 1,
+    function()
+        if not active or not character then return end
+        if not leftShoulder or not rightShoulder then return end
 
         leftShoulder.Transform =
             CFrame.Angles(
-                leftPitch,
-                leftYaw,
-                leftRoll
+                leftValue.Y * 1.2,
+                0,
+                -leftValue.X * 1.2
             )
-    end
-
-    if rightShoulder and rightShoulder.Parent then
 
         rightShoulder.Transform =
             CFrame.Angles(
-                rightPitch,
-                rightYaw,
-                rightRoll
+                rightValue.Y * 1.2,
+                0,
+                -rightValue.X * 1.2
             )
     end
-end)
+)
 
-print("Mobile VR Arms Pro V3 Loaded!")
+print("Mobile VR Arms loaded")
