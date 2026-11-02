@@ -1,9 +1,8 @@
--- Roblox Mobile VR Arm Controller (Fixed Arm Motion & Camera Lock)
+-- Roblox Mobile VR Arm Controller (Direct Joint Override)
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
-local ContextActionService = game:GetService("ContextActionService")
 local player = Players.LocalPlayer
 
 -- Xóa UI cũ nếu có
@@ -30,7 +29,7 @@ local cornerBtn = Instance.new("UICorner")
 cornerBtn.CornerRadius = UDim.new(1, 0)
 cornerBtn.Parent = toggleBtn
 
--- Khung giao diện chính chứa Joystick
+-- Khung giao diện chứa Joystick
 local mainFrame = Instance.new("Frame")
 mainFrame.Size = UDim2.new(0, 380, 0, 210)
 mainFrame.Position = UDim2.new(0.5, -190, 1, -230)
@@ -47,9 +46,8 @@ toggleBtn.MouseButton1Click:Connect(function()
     mainFrame.Visible = not mainFrame.Visible
 end)
 
--- Chức năng Khóa xoay màn hình khi chạm vào bảng điều khiển (Giống như chạm vào bảng UI thông thường)
+-- Khóa xoay màn hình khi chạm vào bảng điều khiển
 local isInteracting = false
-
 mainFrame.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
         isInteracting = true
@@ -62,17 +60,15 @@ mainFrame.InputEnded:Connect(function(input)
     end
 end)
 
--- Chặn camera xoay khi đang chạm vào bảng UI
 RunService.RenderStepped:Connect(function()
     if isInteracting and mainFrame.Visible then
-        -- Ngăn game bắt sự kiện vuốt màn hình để xoay camera
         UserInputService.MouseBehavior = Enum.MouseBehavior.Default
     end
 end)
 
 -- Biến lưu góc tay
-local leftPitch, leftYaw = 0, 0
-local rightPitch, rightYaw = 0, 0
+local leftX, leftY = 0, 0
+local rightX, rightY = 0, 0
 
 -- Hàm tạo Joystick siêu nhạy
 local function createSuperJoystick(name, posX, onUpdate)
@@ -142,50 +138,39 @@ local function createSuperJoystick(name, posX, onUpdate)
     end)
 end
 
--- Khởi tạo 2 Joystick cho Tay Trái và Tay Phải
+-- Khởi tạo 2 Joystick
 createSuperJoystick("Tay Trái (Left)", 35, function(x, y)
-    leftYaw = x * 1.5
-    leftPitch = -y * 1.5
+    leftY = x * 2
+    leftX = -y * 2
 end)
 
-createSuperJoystick("Tay Trải (Right)", 215, function(x, y)
-    rightYaw = x * 1.5
-    rightPitch = -y * 1.5
+createSuperJoystick("Tay Phải (Right)", 215, function(x, y)
+    rightY = x * 2
+    rightX = -y * 2
 end)
 
--- Vòng lặp ép buộc chuyển động khớp tay R15 (Chống ghi đè Animation & Ép tay di chuyển)
+-- Vòng lặp điều khiển trực tiếp cánh tay R15
 RunService.RenderStepped:Connect(function()
     local char = player.Character
     if not char then return end
     
-    -- Dừng các animation tay của game để không tranh chấp khớp nối
-    local humanoid = char:FindFirstChildOfClass("Humanoid")
-    if humanoid then
-        local animator = humanoid:FindFirstChildOfClass("Animator")
-        if animator then
-            for _, track in ipairs(animator:GetPlayingAnimationTracks()) do
-                if track.Animation and (string.find(string.lower(track.Animation.AnimationId), "arm") or string.find(string.lower(track.Animation.AnimationId), "tool")) then
-                    track:Stop(0)
-                end
-            end
-        end
-    end
-
-    -- Ép buộc góc xoay trực tiếp vào khớp vai R15 (LeftUpperArm & RightUpperArm)
+    local torso = char:FindFirstChild("UpperTorso")
     local leftUpperArm = char:FindFirstChild("LeftUpperArm")
     local rightUpperArm = char:FindFirstChild("RightUpperArm")
     
-    if leftUpperArm and leftUpperArm:FindFirstChild("LeftShoulder") then
-        local lShoulder = leftUpperArm.LeftShoulder
-        lShoulder.C0 = CFrame.new(-1, 0.5, 0) * CFrame.Angles(leftPitch, leftYaw, 0)
-        lShoulder.C1 = CFrame.new(0, 0.5, 0)
+    if torso and leftUpperArm and leftUpperArm:FindFirstChild("LeftShoulder") then
+        -- Vô hiệu hóa va chạm và trọng lực tạm thời của tay để dễ điều khiển
+        leftUpperArm.CanCollide = false
+        local shoulder = leftUpperArm.LeftShoulder
+        -- Ép góc xoay trực tiếp vào C0 và vô hiệu hóa Part1 nếu cần, hoặc dùng CFrame trực tiếp
+        shoulder.C0 = CFrame.new(-1.5, 0.5, 0) * CFrame.Angles(leftX, leftY, 0)
     end
     
-    if rightUpperArm and rightUpperArm:FindFirstChild("RightShoulder") then
-        local rShoulder = rightUpperArm.RightShoulder
-        rShoulder.C0 = CFrame.new(1, 0.5, 0) * CFrame.Angles(rightPitch, rightYaw, 0)
-        rShoulder.C1 = CFrame.new(0, 0.5, 0)
+    if torso and rightUpperArm and rightUpperArm:FindFirstChild("RightShoulder") then
+        rightUpperArm.CanCollide = false
+        local shoulder = rightUpperArm.RightShoulder
+        shoulder.C0 = CFrame.new(1.5, 0.5, 0) * CFrame.Angles(rightX, rightY, 0)
     end
 end)
 
-print("VR Mobile R15 (Camera Lock & Force Arm Motion) đã hoạt động!")
+print("VR Mobile R15 (Direct Joint Override) đã chạy!")
