@@ -1,8 +1,9 @@
--- Roblox Mobile VR Arm Controller (Super Responsive Touch Fix)
+-- Roblox Mobile VR Arm Controller (Fixed Arm Motion & Camera Lock)
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
+local ContextActionService = game:GetService("ContextActionService")
 local player = Players.LocalPlayer
 
 -- Xóa UI cũ nếu có
@@ -29,7 +30,7 @@ local cornerBtn = Instance.new("UICorner")
 cornerBtn.CornerRadius = UDim.new(1, 0)
 cornerBtn.Parent = toggleBtn
 
--- Khung giao diện chính
+-- Khung giao diện chính chứa Joystick
 local mainFrame = Instance.new("Frame")
 mainFrame.Size = UDim2.new(0, 380, 0, 210)
 mainFrame.Position = UDim2.new(0.5, -190, 1, -230)
@@ -46,11 +47,34 @@ toggleBtn.MouseButton1Click:Connect(function()
     mainFrame.Visible = not mainFrame.Visible
 end)
 
+-- Chức năng Khóa xoay màn hình khi chạm vào bảng điều khiển (Giống như chạm vào bảng UI thông thường)
+local isInteracting = false
+
+mainFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        isInteracting = true
+    end
+end)
+
+mainFrame.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        isInteracting = false
+    end
+end)
+
+-- Chặn camera xoay khi đang chạm vào bảng UI
+RunService.RenderStepped:Connect(function()
+    if isInteracting and mainFrame.Visible then
+        -- Ngăn game bắt sự kiện vuốt màn hình để xoay camera
+        UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+    end
+end)
+
 -- Biến lưu góc tay
 local leftPitch, leftYaw = 0, 0
 local rightPitch, rightYaw = 0, 0
 
--- Hàm tạo Joystick siêu nhạy bằng Global Touch Tracking
+-- Hàm tạo Joystick siêu nhạy
 local function createSuperJoystick(name, posX, onUpdate)
     local outer = Instance.new("Frame")
     outer.Size = UDim2.new(0, 130, 0, 130)
@@ -87,6 +111,7 @@ local function createSuperJoystick(name, posX, onUpdate)
     outer.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
             activeInput = input
+            isInteracting = true
         end
     end)
 
@@ -95,6 +120,7 @@ local function createSuperJoystick(name, posX, onUpdate)
             activeInput = nil
             knob.Position = UDim2.new(0.5, -25, 0.5, -25)
             onUpdate(0, 0)
+            isInteracting = false
         end
     end)
 
@@ -122,17 +148,17 @@ createSuperJoystick("Tay Trái (Left)", 35, function(x, y)
     leftPitch = -y * 1.5
 end)
 
-createSuperJoystick("Tay Phải (Right)", 215, function(x, y)
+createSuperJoystick("Tay Trải (Right)", 215, function(x, y)
     rightYaw = x * 1.5
     rightPitch = -y * 1.5
 end)
 
--- Vòng lặp chiếm quyền khớp vai R15 liên tục (Bẻ khóa animation game)
+-- Vòng lặp ép buộc chuyển động khớp tay R15 (Chống ghi đè Animation & Ép tay di chuyển)
 RunService.RenderStepped:Connect(function()
     local char = player.Character
     if not char then return end
     
-    -- Vô hiệu hóa animation tay của game để không bị giật lại
+    -- Dừng các animation tay của game để không tranh chấp khớp nối
     local humanoid = char:FindFirstChildOfClass("Humanoid")
     if humanoid then
         local animator = humanoid:FindFirstChildOfClass("Animator")
@@ -145,18 +171,21 @@ RunService.RenderStepped:Connect(function()
         end
     end
 
+    -- Ép buộc góc xoay trực tiếp vào khớp vai R15 (LeftUpperArm & RightUpperArm)
     local leftUpperArm = char:FindFirstChild("LeftUpperArm")
     local rightUpperArm = char:FindFirstChild("RightUpperArm")
     
     if leftUpperArm and leftUpperArm:FindFirstChild("LeftShoulder") then
         local lShoulder = leftUpperArm.LeftShoulder
         lShoulder.C0 = CFrame.new(-1, 0.5, 0) * CFrame.Angles(leftPitch, leftYaw, 0)
+        lShoulder.C1 = CFrame.new(0, 0.5, 0)
     end
     
     if rightUpperArm and rightUpperArm:FindFirstChild("RightShoulder") then
         local rShoulder = rightUpperArm.RightShoulder
         rShoulder.C0 = CFrame.new(1, 0.5, 0) * CFrame.Angles(rightPitch, rightYaw, 0)
+        rShoulder.C1 = CFrame.new(0, 0.5, 0)
     end
 end)
 
-print("VR Mobile R15 (Touch Fix) đã chạy thành công!")
+print("VR Mobile R15 (Camera Lock & Force Arm Motion) đã hoạt động!")
