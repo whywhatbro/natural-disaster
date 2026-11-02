@@ -1,4 +1,4 @@
--- Roblox Mobile VR Arm Controller (Fixed & Animation Override)
+-- Roblox Mobile VR Arm Controller (Super Responsive Touch Fix)
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
@@ -15,7 +15,7 @@ screenGui.Name = "MobileVRGui"
 screenGui.Parent = CoreGui
 screenGui.ResetOnSpawn = false
 
--- Nút nổi bật/tắt bảng VR trên màn hình
+-- Nút mở menu VR
 local toggleBtn = Instance.new("TextButton")
 toggleBtn.Size = UDim2.new(0, 50, 0, 50)
 toggleBtn.Position = UDim2.new(0, 20, 0, 120)
@@ -29,7 +29,7 @@ local cornerBtn = Instance.new("UICorner")
 cornerBtn.CornerRadius = UDim.new(1, 0)
 cornerBtn.Parent = toggleBtn
 
--- Khung giao diện chứa Joystick điều khiển
+-- Khung giao diện chính
 local mainFrame = Instance.new("Frame")
 mainFrame.Size = UDim2.new(0, 380, 0, 210)
 mainFrame.Position = UDim2.new(0.5, -190, 1, -230)
@@ -46,12 +46,12 @@ toggleBtn.MouseButton1Click:Connect(function()
     mainFrame.Visible = not mainFrame.Visible
 end)
 
--- Biến lưu góc độ tay trái và tay phải
+-- Biến lưu góc tay
 local leftPitch, leftYaw = 0, 0
 local rightPitch, rightYaw = 0, 0
 
--- Hàm tạo Joystick cảm ứng mượt mà dành riêng cho Mobile
-local function createJoystick(name, posX, onUpdate)
+-- Hàm tạo Joystick siêu nhạy bằng Global Touch Tracking
+local function createSuperJoystick(name, posX, onUpdate)
     local outer = Instance.new("Frame")
     outer.Size = UDim2.new(0, 130, 0, 130)
     outer.Position = UDim2.new(0, posX, 0, 45)
@@ -72,39 +72,38 @@ local function createJoystick(name, posX, onUpdate)
     label.TextSize = 13
     label.Parent = outer
 
-    local knob = Instance.new("TextButton")
+    local knob = Instance.new("Frame")
     knob.Size = UDim2.new(0, 50, 0, 50)
     knob.Position = UDim2.new(0.5, -25, 0.5, -25)
     knob.BackgroundColor3 = Color3.fromRGB(0, 200, 255)
-    knob.Text = ""
     knob.Parent = outer
     
     local knobCorner = Instance.new("UICorner")
     knobCorner.CornerRadius = UDim.new(1, 0)
     knobCorner.Parent = knob
 
-    local activeTouch = nil
+    local activeInput = nil
     
-    knob.InputBegan:Connect(function(input)
+    outer.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
-            activeTouch = input
+            activeInput = input
         end
     end)
 
     UserInputService.InputEnded:Connect(function(input)
-        if input == activeTouch then
-            activeTouch = nil
+        if input == activeInput then
+            activeInput = nil
             knob.Position = UDim2.new(0.5, -25, 0.5, -25)
             onUpdate(0, 0)
         end
     end)
 
-    UserInputService.InputChanged:Connect(function(input)
-        if input == activeTouch and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
+    RunService.RenderStepped:Connect(function()
+        if activeInput then
+            local pos = activeInput.Position
             local outerPos = outer.AbsolutePosition
             local center = outerPos + Vector2.new(65, 65)
-            local currentPos = Vector2.new(input.Position.X, input.Position.Y)
-            local delta = currentPos - center
+            local delta = Vector2.new(pos.X, pos.Y) - center
             
             local radius = 45
             if delta.Magnitude > radius then
@@ -117,29 +116,29 @@ local function createJoystick(name, posX, onUpdate)
     end)
 end
 
--- Khởi tạo Joystick cho Tay Trái và Tay Phải
-createJoystick("Tay Trái (Left)", 35, function(x, y)
+-- Khởi tạo 2 Joystick cho Tay Trái và Tay Phải
+createSuperJoystick("Tay Trái (Left)", 35, function(x, y)
     leftYaw = x * 1.5
     leftPitch = -y * 1.5
 end)
 
-createJoystick("Tay Phải (Right)", 215, function(x, y)
+createSuperJoystick("Tay Phải (Right)", 215, function(x, y)
     rightYaw = x * 1.5
     rightPitch = -y * 1.5
 end)
 
--- Vòng lặp chiếm quyền khớp vai R15 (Bẻ khóa Animation hoàn toàn)
+-- Vòng lặp chiếm quyền khớp vai R15 liên tục (Bẻ khóa animation game)
 RunService.RenderStepped:Connect(function()
     local char = player.Character
     if not char then return end
     
-    -- Tắt Animator của game để không bị ghi đè cử động tay
+    -- Vô hiệu hóa animation tay của game để không bị giật lại
     local humanoid = char:FindFirstChildOfClass("Humanoid")
     if humanoid then
         local animator = humanoid:FindFirstChildOfClass("Animator")
         if animator then
             for _, track in ipairs(animator:GetPlayingAnimationTracks()) do
-                if track.Animation and string.find(string.lower(track.Animation.AnimationId), "arm") then
+                if track.Animation and (string.find(string.lower(track.Animation.AnimationId), "arm") or string.find(string.lower(track.Animation.AnimationId), "tool")) then
                     track:Stop(0)
                 end
             end
@@ -160,4 +159,4 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
-print("VR Mobile R15 (Animation Override Fixed) đã chạy!")
+print("VR Mobile R15 (Touch Fix) đã chạy thành công!")
